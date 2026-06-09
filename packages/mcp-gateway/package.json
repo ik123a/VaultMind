@@ -1,0 +1,23 @@
+{
+  "name": "@vaultmind/mcp-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@vaultmind/vm-core": "0.1.0",
+    "@vaultmind/vm-sandbox": "0.1.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.6.0"
+  }
+}

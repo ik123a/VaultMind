@@ -1,0 +1,42 @@
+# VaultMind Security Policy
+# All AI agent tool calls are evaluated against these rules.
+# First matching rule wins. Deny takes precedence over allow.
+
+version: '1.0'
+
+rules:
+  - id: allow-read-docs
+    description: Allow reading documentation
+    allow:
+      - read(docs/*)
+      - read(*.md)
+      - read(*.txt)
+      - read(README*)
+      - read(LICENSE*)
+
+  - id: block-src-writes
+    description: Never let agents write to source code
+    deny:
+      - write(src/*)
+      - write(lib/*)
+      - write(packages/*)
+      - write(*.ts)
+      - write(*.js)
+
+  - id: block-destructive
+    description: Never allow destructive operations
+    deny:
+      - exec(rm *)
+      - exec(del *)
+      - exec(shutdown)
+      - exec(reboot)
+
+  - id: network-off
+    description: Block all network access
+    network: 'off'
+
+default_action: deny
+
+audit:
+  enabled: true
+  log_level: info

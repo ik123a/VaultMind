@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultMind Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/recharts@2.15.3/umd/Recharts.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #0f1116;
+      --bg-card: #161822;
+      --bg-card-hover: #1c1f2e;
+      --border: #2a2d3a;
+      --text: #e2e4f0;
+      --text-muted: #8890a8;
+      --accent: #7c5cfc;
+      --accent-hover: #9370ff;
+      --danger: #ef5350;
+      --danger-bg: rgba(239,83,80,0.12);
+      --success: #4ef08e;
+      --success-bg: rgba(78,240,142,0.12);
+      --warn: #ffb347;
+      --warn-bg: rgba(255,179,71,0.12);
+      --info: #63b3ed;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .bg-card { background: var(--bg-card); }
+    .border-subtle { border-color: var(--border); }
+    .text-muted { color: var(--text-muted); }
+    .accent { color: var(--accent); }
+    .bg-accent { background: var(--bg-accent); }
+
+    .stat-card {
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+
+    .verdict-allow { color: var(--success); background: var(--success-bg); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .verdict-deny { color: var(--danger); background: var(--danger-bg); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .verdict-error { color: var(--warn); background: var(--warn-bg); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover { background: var(--danger-bg); }
+
+    #event-log { max-height: 500px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.8rem; }
+    #event-log::-webkit-scrollbar { width: 6px; }
+    #event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .event-row { padding: 4px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+    .event-row:hover { background: var(--bg-card-hover); }
+    .event-time { color: var(--text-muted); white-space: nowrap; min-width: 80px; }
+
+    #ws-status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    #ws-status.connected { background: var(--success); }
+    #ws-status.disconnected { background: var(--danger); }
+
+    .tab-btn { border: none; background: none; color: var(--text-muted); padding: 0.5rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.875rem; }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .policy-editor { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.85rem; color: var(--text); resize: vertical; min-height: 200px; width: 100%; }
+    .toast { position: fixed; top: 16px; right: 16px; padding: 12px 20px; border-radius: 8px; z-index: 100; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+    .toast-error { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+
+  <!-- Header -->
+  <header class="border-b border-subtle py-4 px-6 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-lg">V</div>
+      <div>
+        <h1 class="text-lg font-semibold">VaultMind</h1>
+        <p class="text-muted text-xs">Offline-First AI Governance</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="ws-status" class="disconnected"></span>
+      <span id="ws-label" class="text-muted text-sm">Disconnected</span>
+      <span class="text-muted">|</span>
+      <span class="text-muted text-sm">Session: <span id="session-id" class="text-gray-400">—</span></span>
+      <button class="btn btn-danger text-xs" onclick="stopSession()">Stop Session</button>
+    </div>
+  </header>
+
+  <!-- Stats Bar -->
+  <div id="stats-bar" class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6">
+    <div class="bg-card stat-card">
+      <div class="text-muted text-xs uppercase tracking-wider mb-1">Total Events</div>
+      <div class="text-2xl font-bold" id="stat-total">0</div>
+    </div>
+    <div class="bg-card stat-card">
+      <div class="text-muted text-xs uppercase tracking-wider mb-1">Allowed</div>
+      <div class="text-2xl font-bold" style="color: var(--success)" id="stat-allowed">0</div>
+    </div>
+    <div class="bg-card stat-card">
+      <div class="text-muted text-xs uppercase tracking-wider mb-1">Blocked</div>
+      <div class="text-2xl font-bold" style="color: var(--danger)" id="stat-denied">0</div>
+    </div>
+    <div class="bg-card stat-card">
+      <div class="text-muted text-xs uppercase tracking-wider mb-1">Errors</div>
+      <div class="text-2xl font-bold" style="color: var(--warn)" id="stat-errors">0</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="px-6 border-b border-subtle flex gap-0">
+    <button class="tab-btn active" onclick="switchTab('events')">Live Events</button>
+    <button class="tab-btn" onclick="switchTab('policy')">Policy</button>
+    <button class="tab-btn" onclick="switchTab('charts')">Charts</button>
+  </div>
+
+  <!-- Tab: Live Events -->
+  <div id="tab-events" class="tab-content active p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <button class="btn btn-primary" onclick="startSession()">New Session</button>
+      <label class="flex items-center gap-2 text-sm text-muted cursor-pointer">
+        <input type="checkbox" id="auto-scroll" checked> Auto-scroll
+      </label>
+      <button class="btn text-xs" onclick="clearEvents()">Clear</button>
+      <span id="event-count" class="text-muted text-sm ml-auto">0 events</span>
+    </div>
+    <div class="bg-card border border-subtle rounded-xl overflow-hidden">
+      <div id="event-log">
+        <div class="text-muted p-4 text-center text-sm">No events yet. Create a session to begin auditing.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Policy -->
+  <div id="tab-policy" class="tab-content p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <button class="btn btn-primary" onclick="validatePolicy()">Validate</button>
+      <button class="btn" onclick="loadPolicy()">Load from file</button>
+      <button class="btn" onclick="generatePolicyFromLog()">Generate from log</button>
+    </div>
+    <div id="policy-validation" class="mb-3"></div>
+    <textarea id="policy-editor" class="policy-editor" spellcheck="false">version: "1.0"
+rules:
+  - id: "allow-read-docs"
+    allow:
+      - "read(docs/*)"
+      - "read(*.md)"
+  - id: "block-src-writes"
+    deny:
+      - "write(src/*)"
+      - "write(lib/*)"
+  - id: "network-off"
+    network: "off"
+default_action: "deny"
+audit:
+  enabled: true
+  log_level: "info"
+</textarea>
+  </div>
+
+  <!-- Tab: Charts -->
+  <div id="tab-charts" class="tab-content p-6">
+    <div class="bg-card stat-card mb-4">
+      <div class="text-muted text-xs uppercase tracking-wider mb-2">Event Distribution</div>
+      <div id="chart-container" style="width: 100%; height: 300px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // ─── State ────
+    const API_BASE = 'http://127.0.0.1:3080';
+    let ws = null;
+    let sessionId = null;
+    let events = [];
+    let stats = { total: 0, allowed: 0, denied: 0, errors: 0 };
+
+    // ─── WebSocket ────
+    function connectWS() {
+      const wsUrl = sessionId
+        ? `ws://127.0.0.1:3080/v1/stream`
+        : `ws://127.0.0.1:3080/v1/stream`;
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          document.getElementById('ws-status').className = 'connected';
+          document.getElementById('ws-label').textContent = 'Connected';
+        };
+        ws.onclose = () => {
+          document.getElementById('ws-status').className = 'disconnected';
+          document.getElementById('ws-label').textContent = 'Disconnected';
+        };
+        ws.onerror = () => { /* handled by onclose */ };
+        ws.onmessage = (msg) => {
+          try {
+            const event = JSON.parse(msg.data);
+            addEvent(event);
+          } catch(e) {}
+        };
+      } catch(e) {
+        // Server might not be running — that's OK
+      }
+    }
+
+    // ─── Session Management ────
+    async function startSession() {
+      try {
+        const res = await fetch(`${API_BASE}/v1/sessions`, { method: 'POST' });
+        const data = await res.json();
+        sessionId = data.sessionId;
+        document.getElementById('session-id').textContent = sessionId.slice(0, 8) + '...';
+        events = [];
+        stats = { total: 0, allowed: 0, denied: 0, errors: 0 };
+        updateStats();
+        document.getElementById('event-log').innerHTML = '';
+        document.getElementById('event-count').textContent = '0 events';
+        connectWS();
+        toast('Session created: ' + sessionId.slice(0, 8) + '...', 'success');
+      } catch(e) {
+        toast('Cannot reach VaultMind server on port 3080', 'error');
+      }
+    }
+
+    async function stopSession() {
+      if (!sessionId) return;
+      try {
+        await fetch(`${API_BASE}/v1/sessions/${sessionId}/stop`, { method: 'POST' });
+        if (ws) ws.close();
+        sessionId = null;
+        document.getElementById('session-id').textContent = '\u2014';
+        document.getElementById('ws-status').className = 'disconnected';
+        document.getElementById('ws-label').textContent = 'Disconnected';
+        toast('Session stopped', 'success');
+      } catch(e) {
+        toast('Error stopping session', 'error');
+      }
+    }
+
+    // ─── Events ────
+    function addEvent(event) {
+      events.push(event);
+      stats.total++;
+      if (event.verdict === 'allow') stats.allowed++;
+      else if (event.verdict === 'deny') stats.denied++;
+      else if (event.verdict === 'error') stats.errors++;
+      else if (event.type === 'blocked') stats.denied++;
+
+      updateStats();
+      renderEvent(event);
+
+      if (events.length === 1) {
+        document.getElementById('event-log').innerHTML = '';
+      }
+    }
+
+    function renderEvent(event) {
+      const log = document.getElementById('event-log');
+      const div = document.createElement('div');
+      div.className = 'event-row';
+
+      const verdict = event.verdict || (event.type === 'blocked' ? 'deny' : 'allow');
+      const verdictClass = `verdict-${verdict}`;
+
+      const time = new Date(event.ts).toLocaleTimeString();
+      const tool = (event.request && event.request.method) || event.tool || 'unknown';
+      const reason = event.reason || '';
+
+      div.innerHTML = `<span class="event-time">${time}</span>
+        <span class="${verdictClass}">${verdict.toUpperCase()}</span>
+        <span style="color: var(--accent)">${tool}</span>
+        <span class="text-muted" style="flex:1; font-size: 0.75rem">${reason}</span>`;
+
+      log.appendChild(div);
+      document.getElementById('event-count').textContent = events.length + ' events';
+
+      if (document.getElementById('auto-scroll').checked) {
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+
+    function clearEvents() {
+      events = [];
+      stats = { total: 0, allowed: 0, denied: 0, errors: 0 };
+      updateStats();
+      document.getElementById('event-log').innerHTML = '<div class="text-muted p-4 text-center text-sm">Events cleared.</div>';
+      document.getElementById('event-count').textContent = '0 events';
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = stats.total;
+      document.getElementById('stat-allowed').textContent = stats.allowed;
+      document.getElementById('stat-denied').textContent = stats.denied;
+      document.getElementById('stat-errors').textContent = stats.errors;
+    }
+
+    // ─── Policy ────
+    async function validatePolicy() {
+      const yaml = document.getElementById('policy-editor').value;
+      try {
+        // Basic JSON round-trip: convert YAML-like to JSON for API
+        // For now, just show what we have
+        const response = document.getElementById('policy-validation');
+        response.innerHTML = '<div class="text-muted text-sm">Policy text loaded. Use CLI: <code>vaultmind policy validate policy.yaml</code></div>';
+        toast('Use CLI for full validation: vaultmind policy validate', 'success');
+      } catch(e) {
+        toast('Parse error: ' + e.message, 'error');
+      }
+    }
+
+    async function loadPolicy() {
+      try {
+        const res = await fetch(`${API_BASE}/v1/policies/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version: '1.0', rules: [], default_action: 'deny' })
+        });
+        if (res.ok) toast('Server reachable', 'success');
+        else toast('Policy API not available', 'error');
+      } catch(e) {
+        toast('Server not running. Start with: npx tsx packages/cli/src/index.ts gateway start', 'error');
+      }
+    }
+
+    function generatePolicyFromLog() {
+      toast('Run CLI: vaultmind policy generate', 'success');
+    }
+
+    // ─── Tabs ────
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    // ─── Charts ────
+    function renderChart() {
+      const container = document.getElementById('chart-container');
+      if (!container || typeof Recharts === 'undefined') return;
+      const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } = Recharts;
+      const data = [
+        { name: 'Allowed', value: stats.allowed, fill: '#4ef08e' },
+        { name: 'Denied', value: stats.denied, fill: '#ef5350' },
+        { name: 'Errors', value: stats.errors, fill: '#ffb347' },
+      ];
+      const chart = React.createElement(ResponsiveContainer, { width: '100%', height: 250 },
+        React.createElement(BarChart, { data },
+          React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#2a2d3a' }),
+          React.createElement(XAxis, { dataKey: 'name', stroke: '#8890a8', tick: { fill: '#8890a8', fontSize: 12 } }),
+          React.createElement(YAxis, { stroke: '#8890a8', tick: { fill: '#8890a8', fontSize: 12 } }),
+          React.createElement(Tooltip, { contentStyle: { background: '#161822', border: '1px solid #2a2d3a', borderRadius: '8px', color: '#e2e4f0' } }),
+          React.createElement(Bar, { dataKey: 'value', radius: [4, 4, 0, 0] })
+        )
+      );
+      const root = ReactDOM.createRoot(container);
+      root.render(chart);
+    }
+
+    // Refresh chart when switching to charts tab
+    const origSwitchTab = switchTab;
+    switchTab = function(name) {
+      origSwitchTab(name);
+      if (name === 'charts') setTimeout(renderChart, 100);
+    };
+  </script>
+
+  <!-- React + ReactDOM for Recharts -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <script>
+    // ─── Toast helper ────
+    function toast(message, type) {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => { el.remove(); }, 3000);
+    }
+
+    // Auto-connect if server is running
+    setTimeout(() => {
+      fetch(`${API_BASE}/v1/stats`).then(r => r.json()).then(data => {
+        document.getElementById('ws-status').className = 'connected';
+        document.getElementById('ws-label').textContent = 'Server online';
+        connectWS();
+      }).catch(() => {
+        document.getElementById('ws-label').textContent = 'Server offline';
+      });
+    }, 500);
+  </script>
+</body>
+</html>

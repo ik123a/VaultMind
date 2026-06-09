@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vaultmind/
+*.db
+*.jsonl
+.env
+.DS_Store
+Thumbs.db
