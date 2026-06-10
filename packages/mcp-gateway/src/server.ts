@@ -14,9 +14,15 @@ export interface ServerOptions {
   dashboardPath?: string;
 }
 
+function resolveDashboardPath(): string {
+  // Always resolve from CWD (project root when using CLI)
+  const cwdPath = path.join(process.cwd(), 'dashboard', 'dist');
+  return cwdPath;
+}
+
 const DEFAULT_OPTIONS: ServerOptions = {
   port: 3080,
-  dashboardPath: path.join(__dirname, '..', '..', 'dashboard', 'dist'),
+  dashboardPath: resolveDashboardPath(),
 };
 
 /**
@@ -61,8 +67,8 @@ export class VaultMindServer {
 
   async start(): Promise<void> {
     return new Promise((resolve) => {
-      this.httpServer.listen(this.options.port, () => {
-        console.log(`[VaultMind] Server running on http://127.0.0.1:${this.options.port}`);
+      this.httpServer.listen(this.options.port, '0.0.0.0', () => {
+        console.log(`[VaultMind] Server running on http://0.0.0.0:${this.options.port}`);
         console.log(`[VaultMind] WebSocket stream at ws://127.0.0.1:${this.options.port}/v1/stream`);
         resolve();
       });
@@ -130,7 +136,7 @@ export class VaultMindServer {
 
     this.jsonResponse(res, 201, {
       sessionId,
-      wsUrl: `ws://127.0.0.1:${this.options.port}/v1/stream`,
+      wsUrl: `ws://localhost:${this.options.port}/v1/stream`,
       policy: policy,
     });
   }

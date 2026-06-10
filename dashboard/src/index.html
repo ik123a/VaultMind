@@ -191,7 +191,7 @@ audit:
 
   <script>
     // ─── State ────
-    const API_BASE = 'http://127.0.0.1:3080';
+    const API_BASE = window.location.protocol + '//' + window.location.host;
     let ws = null;
     let sessionId = null;
     let events = [];
@@ -199,9 +199,7 @@ audit:
 
     // ─── WebSocket ────
     function connectWS() {
-      const wsUrl = sessionId
-        ? `ws://127.0.0.1:3080/v1/stream`
-        : `ws://127.0.0.1:3080/v1/stream`;
+      const wsUrl = `ws://${window.location.host}/v1/stream`;
       try {
         ws = new WebSocket(wsUrl);
         ws.onopen = () => {
