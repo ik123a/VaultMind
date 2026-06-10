@@ -1,0 +1,27 @@
+[Unit]
+Description=VaultMind AI Governance Gateway
+Documentation=https://github.com/your-org/vaultmind
+After=network.target
+
+[Service]
+Type=simple
+User=vaultmind
+WorkingDirectory=/opt/vaultmind
+ExecStart=/usr/bin/node /opt/vaultmind/packages/cli/dist/index.js gateway start --port 3080
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/opt/vaultmind/.vaultmind
+
+[Install]
+WantedBy=multi-user.target

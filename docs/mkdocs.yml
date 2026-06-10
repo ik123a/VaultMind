@@ -1,0 +1,13 @@
+site_name: VaultMind
+site_description: Offline-First AI Environment for Sensitive Code
+repo_url: https://github.com/your-org/vaultmind
+theme: material
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Policy Guide: policy.md
+  - CLI Reference: cli.md
+  - Architecture: architecture.md
+  - API: api.md
+  - SDK: sdk.md
+  - Contributing: contributing.md

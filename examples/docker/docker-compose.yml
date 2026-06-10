@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  vaultmind:
+    build: .
+    container_name: vaultmind
+    ports:
+      - "3080:3080"
+    volumes:
+      - ./policy.yaml:/app/policy.yaml:ro
+      - vaultmind_data:/app/.vaultmind
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  vaultmind_data:
