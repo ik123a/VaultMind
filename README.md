@@ -247,14 +247,6 @@ vaultmind/
 
 ---
 
-## 🗺️ Roadmap
-
-- **Month 1**: ✅ Core TypeScript gateway, policy engine, audit trail, CLI
-- **Month 2**: 🔜 Rust sandbox (seccomp/Landlock), kernel network isolation, Wasm plugin system
-- **Month 3**: 🔜 Container runtime integration (Docker/Podman), distributed tracing, OIDC support
-
----
-
 ## 🤝 Contributing
 
 First-time contributors welcome! Check out [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions.
