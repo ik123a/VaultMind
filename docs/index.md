@@ -50,7 +50,7 @@ flowchart TD
     PolicyYaml -.->|Defines Rules| PolicyEngine
     PolicyEngine -->|2. allow/deny/error| VMGateway
     VMGateway -->|3. Log Event| SQLite & JSONL
-    VMGateway -->|4. Execute (If Allowed)| VMSandbox
+    VMGateway -->|4. Execute if allowed| VMSandbox
 
     %% Styling
     classDef client fill:#111827,stroke:#3b82f6,stroke-width:2px,color:#f3f4f6;
