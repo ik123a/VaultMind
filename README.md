@@ -7,6 +7,8 @@ VaultMind is the first open-source **policy decision point** for AI coding agent
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-13%20passed-brightgreen)](tests/)
 
+![VaultMind Real-time Security Dashboard](docs/images/dashboard.png)
+
 ---
 
 ## ❓ Why VaultMind?
@@ -15,22 +17,52 @@ Every major AI coding client — Claude Desktop, Cursor, VS Code with Copilot �
 
 **No existing solution bridges the gap between AI productivity and enterprise security.** VaultMind does.
 
-```
-[ Claude / Cursor / VS Code ]
-         │ (MCP stdio/SSE)
-         ▼
-┌─────────────────────────────────┐
-│   vaultmind-gateway              │
-│  • Proxies all tool calls        │
-│  • Evaluates against policy.yaml │
-│  • Records every event (audit)   │
-└────────────┬────────────┬────────┘
-             │            │
-             ▼            ▼
-┌──────────────────┐  ┌──────────────────┐
-│ Policy Engine     │  │ SQLite Audit Trail│
-│ allow/deny rules  │  │ + JSONL event log │
-└──────────────────┘  └──────────────────┘
+```mermaid
+flowchart TD
+    subgraph Clients ["AI Clients (Local)"]
+        Claude[Claude Desktop]
+        Cursor[Cursor]
+        VSCode[VS Code]
+    end
+
+    subgraph Gateway ["VaultMind Gateway (Local Proxy)"]
+        VMGateway["vaultmind-gateway"]
+    end
+
+    subgraph Security ["Security Engine"]
+        PolicyEngine["Policy Engine<br>(allow/deny/network rules)"]
+        PolicyYaml["policy.yaml"]
+    end
+
+    subgraph Logs ["Immutable Audit Trail"]
+        SQLite[("SQLite Audit Trail<br>(vault.db)")]
+        JSONL["JSONL Event Log"]
+    end
+
+    subgraph Sandbox ["Isolation"]
+        VMSandbox["Process Sandbox<br>(FS ACLs & Net Block)"]
+    end
+
+    %% Flow of Tool Calls
+    Claude & Cursor & VSCode -->|MCP stdio/SSE| VMGateway
+    VMGateway -->|1. Request Verdict| PolicyEngine
+    PolicyYaml -.->|Defines Rules| PolicyEngine
+    PolicyEngine -->|2. allow/deny/error| VMGateway
+    VMGateway -->|3. Log Event| SQLite & JSONL
+    VMGateway -->|4. Execute (If Allowed)| VMSandbox
+
+    %% Styling
+    classDef client fill:#111827,stroke:#3b82f6,stroke-width:2px,color:#f3f4f6;
+    classDef gw fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#f3f4f6;
+    classDef engine fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f3f4f6;
+    classDef audit fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#f3f4f6;
+    classDef sand fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#f3f4f6;
+
+    class Claude,Cursor,VSCode client;
+    class VMGateway gw;
+    class PolicyEngine,PolicyYaml engine;
+    class SQLite,JSONL audit;
+    class VMSandbox sand;
 ```
 
 ---
