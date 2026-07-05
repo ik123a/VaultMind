@@ -1,5 +1,13 @@
 {
+  "name": "vaultmind",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "dashboard"
+  ],
   "devDependencies": {
+    "tsx": "^4.23.0",
     "vitest": "^4.1.8"
   }
 }
+

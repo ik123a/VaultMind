@@ -1,0 +1,15 @@
+services:
+  vaultmind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vaultmind-gateway
+    ports:
+      - "3080:3080"
+    volumes:
+      - vaultmind-data:/app/.vaultmind
+    restart: unless-stopped
+
+volumes:
+  vaultmind-data:
+    driver: local
