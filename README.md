@@ -217,6 +217,33 @@ console.log(client.getStats()); // { total, allowed, denied, errors }
 await client.endSession();
 ```
 
+## 🐳 Docker & Kubernetes Deployment
+
+### Running with Docker Compose
+You can run the VaultMind gateway and dashboard in a containerized environment:
+
+1. **Build and start the container**:
+   ```bash
+   docker compose up -d --build
+   ```
+2. **Access the dashboard**:
+   Open `http://localhost:3080` in your browser.
+
+The SQLite audit log database is persisted using a named volume (`vaultmind-data`).
+
+### Deploying to Kubernetes
+Kubernetes manifests are located in the `k8s/` directory.
+
+1. **Apply the persistent volume, deployment, and service**:
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+   ```
+2. **Access the service**:
+   The gateway runs as a `ClusterIP` service. Port-forward to access it locally:
+   ```bash
+   kubectl port-forward svc/vaultmind-service 3080:3080
+   ```
+
 ---
 
 ## 📁 Project Structure
