@@ -5,9 +5,15 @@
     "packages/*",
     "dashboard"
   ],
+  "scripts": {
+    "build": "npm run build -w @vaultmind/vm-core && npm run build -w @vaultmind/vm-sandbox && npm run build -w @vaultmind/sdk && npm run build -w @vaultmind/mcp-gateway && npm run build -w @vaultmind/cli",
+    "pretest": "npm run build -w @vaultmind/vm-core",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p packages/vm-core --noEmit && tsc -p packages/vm-sandbox --noEmit && tsc -p packages/sdk --noEmit && tsc -p packages/mcp-gateway --noEmit && tsc -p packages/cli --noEmit"
+  },
   "devDependencies": {
     "tsx": "^4.23.0",
     "vitest": "^4.1.8"
   }
 }
-

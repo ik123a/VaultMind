@@ -1,0 +1,13 @@
+
+{
+  "name": "@vaultmind/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve dist",
+    "build": "mkdir -p dist && cp src/index.html dist/index.html"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

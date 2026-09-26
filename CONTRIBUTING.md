@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/your-org/vaultmind.git
+git clone https://github.com/ik123a/VaultMind.git
 cd vaultmind
 npm install
 cd packages/vm-core && npm install && npm link && npx tsc && cd ../..

@@ -36,3 +36,6 @@ local.properties
 *.rar
 .pytest_cache/
 .turbo/
+
+# Local scratch notes (contain LAN addresses and machine-specific paths)
+DASHBOARD_URL.txt

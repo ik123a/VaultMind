@@ -71,7 +71,7 @@ flowchart TD
 
 ```bash
 # Install from source
-git clone https://github.com/your-org/vaultmind.git
+git clone https://github.com/ik123a/VaultMind.git
 cd vaultmind
 npm install
 

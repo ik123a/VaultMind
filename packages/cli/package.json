@@ -1,0 +1,21 @@
+{
+  "name": "@vaultmind/cli",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "bin": {
+    "vaultmind": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@vaultmind/vm-core": "0.1.0",
+    "@vaultmind/mcp-gateway": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
