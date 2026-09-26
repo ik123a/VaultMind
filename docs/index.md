@@ -70,5 +70,4 @@ flowchart TD
 
 - [Quick Start](quickstart.md)
 - [Policy Guide](policy.md)
-- [CLI Reference](cli.md)
-- [API](api.md)
+- [Contributing](../CONTRIBUTING.md)

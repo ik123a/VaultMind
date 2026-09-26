@@ -1,6 +1,6 @@
 site_name: VaultMind
 site_description: Offline-First AI Environment for Sensitive Code
-repo_url: https://github.com/your-org/vaultmind
+repo_url: https://github.com/ik123a/VaultMind
 theme: material
 nav:
   - Home: index.md
