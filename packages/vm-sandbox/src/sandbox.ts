@@ -12,18 +12,58 @@ const DEFAULT_OPTIONS: SandboxOptions = {
 
 export { SandboxOptions } from '@vaultmind/vm-core';
 
+function isWithinPath(root: string, target: string): boolean {
+  const relative = path.relative(root, target);
+  return relative === '' ||
+    (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+/** Resolve existing links, retaining missing descendants for prospective writes. */
+function resolvePolicyPath(target: string): string {
+  let current = target || '.';
+  const missing: string[] = [];
+
+  for (;;) {
+    let real: string;
+    try {
+      real = fs.realpathSync.native(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+
+      // A dangling link is an existing entry, not a safe missing descendant.
+      let entryExists = false;
+      try {
+        fs.lstatSync(current);
+        entryExists = true;
+      } catch (statError) {
+        if ((statError as NodeJS.ErrnoException).code !== 'ENOENT') throw statError;
+      }
+      if (entryExists) throw error;
+
+      const parent = path.dirname(current);
+      if (parent === current) throw error;
+      missing.unshift(path.basename(current));
+      current = parent;
+      continue;
+    }
+
+    if (missing.length > 0 && !fs.statSync(real).isDirectory()) {
+      throw new Error('Sandbox: path ancestor is not a directory');
+    }
+    return path.resolve(real, ...missing);
+  }
+}
+
 /**
  * VaultMind Sandbox
  *
- * A lightweight execution sandbox for Windows that:
- * - Spawns processes with resource limits (timeout, memory hints)
- * - Checks file access paths against allow/deny lists
- * - Blocks network access when configured (via environment variable injection)
- * - Captures stdout/stderr and timing
+ * A process runner with a working-directory policy check, timeout, and output capture.
+ * checkPathAccess is an explicit preflight helper, not filesystem enforcement.
+ * Network-related environment variables are advisory and do not block sockets.
  *
- * NOTE: True kernel-level sandboxing (seccomp, Landlock) requires Rust/Linux.
- * This Node.js implementation provides policy-level enforcement suitable
- * for the MVP.
+ * This implementation provides no OS isolation on any platform. Children inherit
+ * the host environment and permissions; Windows execution uses a command shell.
+ * Only use trusted commands, or supply an independently enforced OS sandbox.
  */
 export class Sandbox {
   private options: SandboxOptions;
@@ -33,7 +73,7 @@ export class Sandbox {
   }
 
   /**
-   * Execute a command inside the sandbox.
+   * Execute a trusted command after checking its working directory.
    */
   async execute(command: string, args: string[], cwd?: string): Promise<SandboxResult> {
     const startTime = Date.now();
@@ -92,21 +132,28 @@ export class Sandbox {
   }
 
   /**
-   * Check whether a file path is allowed by sandbox policy.
+   * Check lexical and resolved path containment against the same policy for reads
+   * and writes. Filesystem changes after this check are not prevented.
    */
-  checkPathAccess(filePath: string, operation: 'read' | 'write'): boolean {
-    const absolute = path.resolve(filePath);
+  checkPathAccess(filePath: string, _operation: 'read' | 'write'): boolean {
+    try {
+      const absolute = path.resolve(filePath);
+      const real = resolvePolicyPath(filePath);
 
-    for (const denied of this.options.deniedPaths) {
-      const deniedAbs = path.resolve(denied);
-      if (absolute.startsWith(deniedAbs)) return false;
-    }
+      for (const denied of this.options.deniedPaths) {
+        if (isWithinPath(path.resolve(denied), absolute) ||
+            isWithinPath(resolvePolicyPath(denied), real)) return false;
+      }
 
-    if (this.options.allowedPaths.length === 0) return true;
+      if (this.options.allowedPaths.length === 0) return true;
 
-    for (const allowed of this.options.allowedPaths) {
-      const allowedAbs = path.resolve(allowed);
-      if (absolute.startsWith(allowedAbs)) return true;
+      for (const allowed of this.options.allowedPaths) {
+        if (isWithinPath(path.resolve(allowed), absolute) &&
+            isWithinPath(resolvePolicyPath(allowed), real)) return true;
+      }
+    } catch {
+      // Invalid paths, inaccessible ancestors, and unresolved links fail closed.
+      return false;
     }
 
     return false;
