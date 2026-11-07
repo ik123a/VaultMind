@@ -11,7 +11,7 @@ VaultMind is the first open-source policy decision point for AI coding agents th
 - **Local MCP Gateway** - Offline proxy intercepting every tool call
 - **Policy Engine** - Simple `policy.yaml` with allow/deny/network rules
 - **Immutable Audit Trail** - Every event logged to SQLite + JSONL
-- **Sandbox Execution** - Process isolation with path ACLs
+- **Sandbox Execution** - Working-directory policy checks, timeout, and output capture; no OS isolation
 - **Auto Policy Generation** - Generate policy from audit logs
 - **Dependency Memoization** - Scan and verify dependency trees
 - **Real-time Dashboard** - WebSocket-powered monitoring UI
@@ -40,8 +40,8 @@ flowchart TD
         JSONL["JSONL Event Log"]
     end
 
-    subgraph Sandbox ["Isolation"]
-        VMSandbox["Process Sandbox<br>(FS ACLs & Net Block)"]
+    subgraph Sandbox ["Process execution"]
+        VMSandbox["Process Runner<br>(CWD Check & Timeout)"]
     end
 
     %% Flow of Tool Calls

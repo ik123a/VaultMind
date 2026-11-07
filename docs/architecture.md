@@ -6,7 +6,7 @@ root; `packages/*` holds the libraries and `dashboard` holds the monitoring UI.
 | Package | Responsibility |
 | --- | --- |
 | `@vaultmind/vm-core` | Shared types, the policy engine, the audit logger and the SQLite database |
-| `@vaultmind/vm-sandbox` | Process sandbox with path ACLs and network blocking |
+| `@vaultmind/vm-sandbox` | Process runner with working-directory checks and a timeout |
 | `@vaultmind/mcp-gateway` | MCP proxy plus the HTTP/WebSocket API server |
 | `@vaultmind/cli` | The `vaultmind` command |
 | `@vaultmind/sdk` | Programmatic client and the fluent policy helper |
@@ -45,8 +45,12 @@ JSONL event log is maintained alongside it for streaming consumers.
 
 ## Known limitations
 
-- **No kernel sandbox on Windows.** True seccomp/Landlock isolation requires Linux. The MVP
-  provides policy-level process isolation only.
-- **Network blocking is heuristic**, based on environment variables rather than a network
-  namespace.
+- **No OS isolation on any platform.** The runner checks the working directory before launch;
+  it does not mediate the child's file operations. Explicit path checks resolve existing links
+  and compare whole path components, but cannot prevent filesystem changes after checking.
+- **Network flags are advisory.** Environment variables and policy helpers do not block sockets.
+- **Commands must be trusted.** Children inherit the parent environment and permissions, and
+  Windows execution uses a shell. Untrusted code requires a separately enforced OS sandbox.
+- **Resource limits are incomplete.** The runner applies a child-process timeout, but does not
+  enforce CPU/memory limits, cap captured output, or terminate descendants as a group.
 - **The SDK is an early preview** and its surface may change.

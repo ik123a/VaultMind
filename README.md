@@ -5,7 +5,7 @@
 VaultMind is the first open-source **policy decision point** for AI coding agents that runs completely offline. It combines a lightweight secure MCP gateway, an immutable audit trail, and a software supply chain explorer — so finance, defense, and regulated-industry teams can finally use AI coding tools without sending secrets to the cloud.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-13%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-vitest-blue)](tests/)
 
 ![VaultMind Real-time Security Dashboard](docs/images/dashboard.png)
 
@@ -39,8 +39,8 @@ flowchart TD
         JSONL["JSONL Event Log"]
     end
 
-    subgraph Sandbox ["Isolation"]
-        VMSandbox["Process Sandbox<br>(FS ACLs & Net Block)"]
+    subgraph Sandbox ["Process execution"]
+        VMSandbox["Process Runner<br>(CWD Check & Timeout)"]
     end
 
     %% Flow of Tool Calls
@@ -132,7 +132,10 @@ Your security policy lives in `policy.yaml`. Store it in Git, review it in PR, a
 Run `vaultmind policy generate` — VaultMind analyzes all past audit logs and produces a `policy.yaml` skeleton that captures observed safe patterns. Only requires final human approval.
 
 ### 5. Sandbox Execution
-Commands run through a sandbox that restricts filesystem access and blocks network calls. Resource limits (timeout, allowed paths) are configurable.
+The process runner checks its working directory against configured path rules before launch,
+applies a timeout, and captures output. It does not restrict the launched program's filesystem
+or network access. Use trusted commands or a separately enforced OS sandbox; see the
+[execution boundary](SECURITY.md#execution-boundary) before using it with sensitive data.
 
 ### 6. Dependency Memoization
 `vaultmind deps memo` scans your `package-lock.json`, `go.sum`, or `Cargo.lock` and builds a dependency DAG. `vaultmind deps verify` checks it against local vulnerability data.
@@ -144,7 +147,7 @@ Commands run through a sandbox that restricts filesystem access and blocks netwo
 | Package | Description |
 |---------|------------|
 | `@vaultmind/vm-core` | Shared types, policy engine, audit logger, SQLite DB |
-| `@vaultmind/vm-sandbox` | Process sandbox with path ACLs and network blocking |
+| `@vaultmind/vm-sandbox` | Process runner with working-directory checks and a timeout |
 | `@vaultmind/mcp-gateway` | MCP proxy + HTTP/WebSocket API server |
 | `@vaultmind/cli` | CLI entrypoint (`vaultmind init|record|analyze|gateway`) |
 | `@vaultmind/sdk` | Programmatic SDK + fluent `createPolicyHelper()` |
@@ -268,8 +271,9 @@ vaultmind/
 
 ## ⚠️ Known Limitations
 
-- **No kernel sandbox on Windows**: True seccomp/Landlock requires Linux + Rust. The current MVP provides policy-level process isolation. Linux sandbox is planned for Month 2.
-- **Network blocking is heuristic**: Environment-variable based; kernel-level network namespace isolation requires Rust port.
+- **No OS isolation on any platform**: Path checks are preflight policy decisions. Executed programs retain the host user's permissions and environment. Windows execution uses a command shell.
+- **No network blocking**: Network helpers and environment flags are advisory; they do not prevent a launched program from opening sockets.
+- **Limited resource controls**: A timeout is passed to the child process. CPU and memory options are not enforced, and descendant processes are not managed as a group.
 - **SDK in early preview**: API surface may evolve as we add plugin support.
 
 ---
